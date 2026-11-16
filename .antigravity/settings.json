@@ -1,6 +1,6 @@
 {
   "planFirst": true,
-  "effort": "medium",
+  "effort": "default",
   "runner": "auto",
   "branchPerChat": false
 }
