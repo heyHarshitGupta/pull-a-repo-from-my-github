@@ -3,7 +3,7 @@
   "name": "pull a repo from my GitHub,",
   "createdAt": "2026-11-16T23:36:37.687Z",
   "filename": "cb983be4-9401-4abe-9405-6c7bf7063927.json",
-  "geminiStarted": false,
+  "geminiStarted": true,
   "messages": [
     {
       "id": "d703182f-d953-4975-b8bf-e2a9e5bbfd67",
@@ -14,6 +14,30 @@
       "client_type": "gemini-bridge",
       "parent_message_id": null,
       "created_at": "2026-11-16T23:37:03.607Z",
+      "sender": "ios",
+      "is_cancelled": false
+    },
+    {
+      "id": "37b69654-b446-4ed3-bf9c-4bddfa469786",
+      "role": "agent",
+      "content": "To connect your **tsh** repository, please **tap the GitHub mark at the top of the chat** to connect your repository to this project. Once connected, your repository will be linked automatically.\n\n---\n\n### Fixing the Payout & Verification Collision\n\nThe issue occurs because the API matches payments using a generic message format (`loss:code`) and payment amount without enforcing a **unique per-ticket message code** or **unique transaction log ID deduplication**. When two payouts share the same amount, the monitor matches the older transaction against the newer ticket.\n\nHere is how the fix works:\n\n#### 1. Separate & Unique Message Formats\n* **Buyer Deposit / Purchase (Buyer $\\rightarrow$ Bank):**\n  * Message format: `buyers:loss` (or `buyer:<order_code>`)\n  * Verifies incoming funds to the bank account for buying losses.\n* **Seller Cashout / Payout (Banker $\\rightarrow$ Seller):**\n  * Message format: `seller:<unique_code>` (e.g. `seller:PAY-8921` using a unique payout ticket ID or nano-id).\n  * Each cashout ticket receives a unique code displayed to the banker.\n\n#### 2. Verification Logic & Deduplication\nTo guarantee identical amounts never falsely mark multiple tickets as paid:\n\n1. **Unique Message Matching**:\n   * Payout monitoring strictly checks for `seller:${ticket.uniqueCode}` instead of generic `loss:code`.\n2. **Transaction ID Locking**:\n   * Record Torn's unique transaction/log ID (`log_id` or timestamp hash) on the payout ticket upon confirmation:\n   ```typescript\n   // Check if log entry matches the exact ticket\n   const isMatch =\n     log.data.receiver === ticket.sellerTornId &&\n     log.data.sender === bankerTornId &&\n     log.data.money === ticket.amount &&\n     log.data.message?.trim().toLowerCase() === `seller:${ticket.code.toLowerCase()}`;\n\n   if (isMatch) {\n     // Verify this torn log hasn't already been consumed by another ticket\n     const alreadyUsed = await db.payout.findFirst({\n       where: { tornTransactionId: log.id }\n     });\n\n     if (!alreadyUsed) {\n       await db.payout.update({\n         where: { id: ticket.id },\n         data: {\n           status: 'COMPLETED',\n           tornTransactionId: log.id,\n           completedAt: new Date()\n         }\n       });\n     }\n   }\n   ```\n3. **Buyer Verification**:\n   * Monitor bank's incoming transfers where `message === 'buyers:loss'` (or `buyer:<orderId>`), credit the buyer's order, and save the Torn log ID to prevent double-crediting.\n\nOnce you connect the repository using the GitHub icon above, let me know and we will apply the changes directly to your codebase.",
+      "status": "completed",
+      "model": "gemini-3.8-flash-high",
+      "client_type": "gemini-bridge",
+      "parent_message_id": "d703182f-d953-4975-b8bf-e2a9e5bbfd67",
+      "created_at": "2026-11-16T23:38:33.857Z",
+      "sender": "macOS",
+      "is_cancelled": false
+    },
+    {
+      "id": "0101220a-1e5b-4d26-bfe5-f9624c97aa72",
+      "role": "user",
+      "content": "working on it?",
+      "status": "pending",
+      "model": "gemini-3.8-flash-high",
+      "client_type": "gemini-bridge",
+      "parent_message_id": null,
+      "created_at": "2026-11-16T23:38:33.858Z",
       "sender": "ios",
       "is_cancelled": false
     }
